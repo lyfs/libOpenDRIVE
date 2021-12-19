@@ -20,15 +20,19 @@
 
 const char* vertex_shader_src = "#version 100\n"
                                 "attribute vec3 xyz;\n"
+                                "attribute vec2 st;\n"
+                                "varying vec2 v_st;\n"
                                 "uniform mat4 MVP;\n"
                                 "void main(){\n"
+                                "   v_st = st;\n"
                                 "   gl_Position = MVP * vec4(xyz, 1);\n"
                                 "}\0";
 
 const char* fragment_shader_src = "#version 100\n"
                                   "precision mediump float;\n"
+                                  "varying vec2 v_st;\n"
                                   "void main(){\n"
-                                  "    gl_FragColor = vec4(1.0, 0.5, 0.2, 1.0);\n"
+                                  "    gl_FragColor = vec4(v_st.x, v_st.y, 0.0, 1.0);\n"
                                   "}\n";
 
 const double    FOV = 70;
@@ -190,6 +194,14 @@ int main(int argc, char* argv[])
                  &road_network_mesh.lanes_mesh.vertices[0],
                  GL_STATIC_DRAW);
 
+    GLuint st_buffer;
+    glGenBuffers(1, &st_buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, st_buffer);
+    glBufferData(GL_ARRAY_BUFFER,
+                 road_network_mesh.lanes_mesh.st_coordinates.size() * 2 * sizeof(double),
+                 &road_network_mesh.lanes_mesh.st_coordinates[0],
+                 GL_STATIC_DRAW);
+
     GLuint indices_buffer;
     glGenBuffers(1, &indices_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_buffer);
@@ -201,7 +213,14 @@ int main(int argc, char* argv[])
     GLuint vertex_array;
     glGenVertexArrays(1, &vertex_array);
     glBindVertexArray(vertex_array);
+
+    glEnableVertexAttribArray(0); // 1st attribute buffer: vertices
+    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
     glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 0, (void*)0);
+
+    glEnableVertexAttribArray(1); // 2nd attribute buffer: st coords
+    glBindBuffer(GL_ARRAY_BUFFER, st_buffer);
+    glVertexAttribPointer(1, 2, GL_DOUBLE, GL_FALSE, 0, (void*)0);
 
     OrbitControls orbit_controls(glm::vec3(2, -3, 1), glm::vec3(0, 0, 0), UP);
 
@@ -250,13 +269,11 @@ int main(int argc, char* argv[])
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
-        glEnableVertexAttribArray(0);
 
         glBindVertexArray(vertex_array);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_buffer);
 
         glDrawElements(GL_TRIANGLES, road_network_mesh.lanes_mesh.vertices.size() * 3, GL_UNSIGNED_INT, 0);
-        glDisableVertexAttribArray(0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -269,6 +286,8 @@ int main(int argc, char* argv[])
         main_loop();
 #endif
 
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
     glfwDestroyWindow(window);
     glfwTerminate();
     exit(EXIT_SUCCESS);
