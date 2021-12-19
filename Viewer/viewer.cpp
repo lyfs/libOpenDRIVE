@@ -1,10 +1,3 @@
-/**
- * compile with:
- *      g++ -std=c++14 `pkg-config --cflags --libs glfw3 glm` -I./  -framework OpenGL main.cpp glad/glad.c OrbitControls.cpp -o objviewer
- * or
- *      emcc -std=c++14 `pkg-config --cflags glm` -s MAX_WEBGL_VERSION=1 -s USE_GLFW=3 -s WASM=1 main.cpp OrbitControls.cpp -o objviewer.html
- */
-
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
     #define GLFW_INCLUDE_ES3
@@ -15,12 +8,15 @@
 #include <GLFW/glfw3.h>
 #include <glm/vec3.hpp>
 
+#include "OpenDriveMap.h"
 #include "OrbitControls.h"
+#include "RoadNetworkMesh.h"
 #include "utils.hpp"
 
 #include <algorithm>
 #include <cstdlib>
 #include <stdio.h>
+#include <vector>
 
 const char* vertex_shader_src = "#version 100\n"
                                 "attribute vec3 xyz;\n"
@@ -37,7 +33,7 @@ const char* fragment_shader_src = "#version 100\n"
 
 const double    FOV = 70;
 const double    NEAR_PLANE = 0.1;
-const double    FAR_PLANE = 100.0;
+const double    FAR_PLANE = 1000.0;
 const glm::vec3 UP = glm::vec3(0, 0, 1);
 
 glm::vec3 pan_start = glm::vec3(0, 0, -1);
@@ -115,6 +111,28 @@ void                  main_loop() { loop(); }
 
 int main(int argc, char* argv[])
 {
+    if (argc < 2)
+    {
+        printf("ERROR: too few arguments\n");
+        return -1;
+    }
+    odr::OpenDriveMap    odr(argv[1]);
+    odr::RoadNetworkMesh road_network_mesh = odr.get_mesh(0.1);
+
+    std::vector<float> vertices;
+    vertices.reserve(road_network_mesh.lanes_mesh.vertices.size());
+    for (const auto& vert : road_network_mesh.lanes_mesh.vertices)
+    {
+        vertices.push_back(vert[0]);
+        vertices.push_back(vert[1]);
+        vertices.push_back(vert[2]);
+    }
+
+    std::vector<unsigned int> indices;
+    indices.reserve(road_network_mesh.lanes_mesh.indices.size());
+    for (const auto& idx : road_network_mesh.lanes_mesh.indices)
+        indices.push_back(idx);
+
     if (!glfwInit())
     {
         printf("fail!\n");
@@ -178,19 +196,19 @@ int main(int argc, char* argv[])
     if (!program_ok(program))
         exit(EXIT_FAILURE);
 
-    const float vertices[] = {2.0, 1.0, 0.0, -2.0, 1.0, 0.0, 0.0, 1.0, 3.0, 2.0, 5.0, 0.0, -2.0, 5.0, 0.0, 0.0, 5.0, 3.0};
+    // const float vertices[] = {2.0, 1.0, 0.0, -2.0, 1.0, 0.0, 0.0, 1.0, 3.0, 2.0, 5.0, 0.0, -2.0, 5.0, 0.0, 0.0, 5.0, 3.0};
 
-    unsigned int indices[] = {0, 1, 2, 3, 5, 4};
+    // unsigned int indices[] = {0, 1, 2, 3, 5, 4};
 
     GLuint vertex_buffer;
     glGenBuffers(1, &vertex_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
 
     GLuint indices_buffer;
     glGenBuffers(1, &indices_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_buffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
 
     GLuint vertex_array;
     glGenVertexArrays(1, &vertex_array);
@@ -253,7 +271,7 @@ int main(int argc, char* argv[])
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_buffer);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, vertices.size(), GL_UNSIGNED_INT, 0);
         glDisableVertexAttribArray(0);
 
         glfwSwapBuffers(window);
