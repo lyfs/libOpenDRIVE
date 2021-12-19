@@ -8,7 +8,7 @@
 inline glm::quat quaternion_from_unit_vectors(glm::vec3 v_from, glm::vec3 v_to)
 {
     glm::quat out_quat;
-    float radius = glm::dot(v_from, v_to) + 1.0f;
+    float     radius = glm::dot(v_from, v_to) + 1.0f;
     if (radius < 2.7e-16)
     {
         radius = 0;
@@ -23,7 +23,8 @@ inline glm::quat quaternion_from_unit_vectors(glm::vec3 v_from, glm::vec3 v_to)
     }
     else
     {
-        out_quat = glm::quat(radius, v_from.y * v_to.z - v_from.z * v_to.y, v_from.z * v_to.x - v_from.x * v_to.z, v_from.x * v_to.y - v_from.y * v_to.x);
+        out_quat =
+            glm::quat(radius, v_from.y * v_to.z - v_from.z * v_to.y, v_from.z * v_to.x - v_from.x * v_to.z, v_from.x * v_to.y - v_from.y * v_to.x);
     }
 
     return glm::normalize(out_quat);
@@ -31,7 +32,6 @@ inline glm::quat quaternion_from_unit_vectors(glm::vec3 v_from, glm::vec3 v_to)
 
 inline glm::vec3 from_cartesian_coords_to_spherical(float x, float y, float z)
 {
-
     const float radius = std::sqrt(x * x + y * y + z * z);
     if (radius == 0)
     {
@@ -57,5 +57,6 @@ inline glm::vec3 apply_quaternion(glm::quat q, glm::vec3 xyz)
     const float iz = q.w * xyz.z + q.x * xyz.y - q.y * xyz.x;
     const float iw = -q.x * xyz.x - q.y * xyz.y - q.z * xyz.z;
 
-    return glm::vec3(ix * q.w + iw * -q.x + iy * -q.z - iz * -q.y, iy * q.w + iw * -q.y + iz * -q.x - ix * -q.z, iz * q.w + iw * -q.z + ix * -q.y - iy * -q.x);
+    return glm::vec3(
+        ix * q.w + iw * -q.x + iy * -q.z - iz * -q.y, iy * q.w + iw * -q.y + iz * -q.x - ix * -q.z, iz * q.w + iw * -q.z + ix * -q.y - iy * -q.x);
 }

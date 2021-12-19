@@ -6,10 +6,10 @@
  */
 
 #ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#define GLFW_INCLUDE_ES3
+    #include <emscripten.h>
+    #define GLFW_INCLUDE_ES3
 #else
-#include <glad/glad.h>
+    #include <glad/glad.h>
 #endif
 
 #include <GLFW/glfw3.h>
@@ -18,36 +18,36 @@
 #include "OrbitControls.h"
 #include "utils.hpp"
 
-#include <stdio.h>
-#include <cstdlib>
 #include <algorithm>
+#include <cstdlib>
+#include <stdio.h>
 
-const char *vertex_shader_src = "#version 100\n"
+const char* vertex_shader_src = "#version 100\n"
                                 "attribute vec3 xyz;\n"
                                 "uniform mat4 MVP;\n"
                                 "void main(){\n"
                                 "   gl_Position = MVP * vec4(xyz, 1);\n"
                                 "}\0";
 
-const char *fragment_shader_src = "#version 100\n"
+const char* fragment_shader_src = "#version 100\n"
                                   "precision mediump float;\n"
                                   "void main(){\n"
                                   "    gl_FragColor = vec4(1.0, 0.5, 0.2, 1.0);\n"
                                   "}\n";
 
-const double FOV = 70;
-const double NEAR_PLANE = 0.1;
-const double FAR_PLANE = 100.0;
+const double    FOV = 70;
+const double    NEAR_PLANE = 0.1;
+const double    FAR_PLANE = 100.0;
 const glm::vec3 UP = glm::vec3(0, 0, 1);
 
 glm::vec3 pan_start = glm::vec3(0, 0, -1);
 glm::vec3 rotate_start = glm::vec3(0, 0, -1);
-float zoom_delta = 0;
+float     zoom_delta = 0;
 
 int window_width = 800;
 int window_height = 600;
 
-bool shader_ok(const GLuint &shader)
+bool shader_ok(const GLuint& shader)
 {
     int success;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
@@ -62,7 +62,7 @@ bool shader_ok(const GLuint &shader)
     return success;
 }
 
-bool program_ok(const GLuint &program)
+bool program_ok(const GLuint& program)
 {
     int success;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
@@ -77,13 +77,13 @@ bool program_ok(const GLuint &program)
     return success;
 }
 
-void window_size_callback(GLFWwindow *window, int width, int height)
+void window_size_callback(GLFWwindow* window, int width, int height)
 {
     window_height = height;
     window_width = width;
 }
 
-void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
     if (button == GLFW_MOUSE_BUTTON_LEFT)
     {
@@ -108,15 +108,12 @@ void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
     }
 }
 
-void scroll_callback(GLFWwindow *window, double xoffset, double yoffset)
-{
-    zoom_delta += yoffset;
-}
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) { zoom_delta += yoffset; }
 
 std::function<void()> loop;
-void main_loop() { loop(); }
+void                  main_loop() { loop(); }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     if (!glfwInit())
     {
@@ -135,7 +132,7 @@ int main(int argc, char *argv[])
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    GLFWwindow *window = glfwCreateWindow(window_width, window_height, "ObjViewer", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(window_width, window_height, "ObjViewer", NULL, NULL);
     if (!window)
     {
         printf("Failed to create GLFW window\n");
@@ -181,17 +178,9 @@ int main(int argc, char *argv[])
     if (!program_ok(program))
         exit(EXIT_FAILURE);
 
-    const float vertices[] = {
-        2.0, 1.0, 0.0,
-        -2.0, 1.0, 0.0,
-        0.0, 1.0, 3.0,
-        2.0, 5.0, 0.0,
-        -2.0, 5.0, 0.0,
-        0.0, 5.0, 3.0};
+    const float vertices[] = {2.0, 1.0, 0.0, -2.0, 1.0, 0.0, 0.0, 1.0, 3.0, 2.0, 5.0, 0.0, -2.0, 5.0, 0.0, 0.0, 5.0, 3.0};
 
-    unsigned int indices[] = {
-        0, 1, 2,
-        3, 5, 4};
+    unsigned int indices[] = {0, 1, 2, 3, 5, 4};
 
     GLuint vertex_buffer;
     glGenBuffers(1, &vertex_buffer);
@@ -206,14 +195,14 @@ int main(int argc, char *argv[])
     GLuint vertex_array;
     glGenVertexArrays(1, &vertex_array);
     glBindVertexArray(vertex_array);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
     glBindVertexArray(0);
 
     OrbitControls orbit_controls(glm::vec3(2, -3, 1), glm::vec3(0, 0, 0), UP);
 
-    GLuint matrix_id = glGetUniformLocation(program, "MVP");
+    GLuint    matrix_id = glGetUniformLocation(program, "MVP");
     glm::mat4 projection = glm::perspective(glm::radians(FOV), (double)(window_width / window_height), NEAR_PLANE, FAR_PLANE);
     glm::mat4 view = glm::lookAt(orbit_controls.cam_position, orbit_controls.cam_target, UP);
     glm::mat4 model = glm::mat4(1.0f);
@@ -262,7 +251,7 @@ int main(int argc, char *argv[])
 
         glBindVertexArray(vertex_array);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_buffer);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         glDisableVertexAttribArray(0);
@@ -274,7 +263,8 @@ int main(int argc, char *argv[])
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(main_loop, 0, true);
 #else
-    while (!glfwWindowShouldClose(window)) main_loop();
+    while (!glfwWindowShouldClose(window))
+        main_loop();
 #endif
 
     glfwDestroyWindow(window);

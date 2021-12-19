@@ -1,5 +1,5 @@
-#include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/vec3.hpp>
 
 struct OrbitControls
 {
