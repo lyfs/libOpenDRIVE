@@ -119,11 +119,6 @@ int main(int argc, char* argv[])
     odr::OpenDriveMap    odr(argv[1]);
     odr::RoadNetworkMesh road_network_mesh = odr.get_mesh(0.1);
 
-    std::vector<unsigned int> indices;
-    indices.reserve(road_network_mesh.lanes_mesh.indices.size());
-    for (const auto& idx : road_network_mesh.lanes_mesh.indices)
-        indices.push_back(idx);
-
     if (!glfwInit())
     {
         printf("fail!\n");
@@ -198,7 +193,10 @@ int main(int argc, char* argv[])
     GLuint indices_buffer;
     glGenBuffers(1, &indices_buffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_buffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 road_network_mesh.lanes_mesh.indices.size() * sizeof(unsigned int),
+                 &road_network_mesh.lanes_mesh.indices[0],
+                 GL_STATIC_DRAW);
 
     GLuint vertex_array;
     glGenVertexArrays(1, &vertex_array);
