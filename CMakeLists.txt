@@ -35,6 +35,26 @@ add_library(OpenDrive SHARED
 target_include_directories(OpenDrive PRIVATE .)
 target_include_directories(OpenDrive PRIVATE Thirdparty)
 
+if(EMSCRIPTEN)
+    set(CMAKE_EXECUTABLE_SUFFIX ".html")
+endif()
+
+# test-xodr
 add_executable(test-xodr test.cpp)
 target_link_libraries(test-xodr OpenDrive)
 target_include_directories(test-xodr PUBLIC .)
+
+# viewer
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GLM REQUIRED glm)
+add_executable(viewer Viewer/viewer.cpp Viewer/OrbitControls.cpp)
+if(EMSCRIPTEN)
+    set_target_properties(viewer PROPERTIES LINK_FLAGS "-s MAX_WEBGL_VERSION=1 -s USE_GLFW=3")
+else()
+    pkg_check_modules(GLFW3 REQUIRED IMPORTED_TARGET glfw3)
+    target_link_libraries(viewer PkgConfig::GLFW3)
+    target_include_directories(viewer PUBLIC ${GLFW3_INCLUDE_DIRS})
+    target_sources(viewer PUBLIC Viewer/glad/glad.c)
+endif()
+target_link_libraries(viewer OpenDrive)
+target_include_directories(viewer PUBLIC . Viewer ${GLM_INCLUDE_DIRS})
