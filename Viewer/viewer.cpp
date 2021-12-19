@@ -119,15 +119,6 @@ int main(int argc, char* argv[])
     odr::OpenDriveMap    odr(argv[1]);
     odr::RoadNetworkMesh road_network_mesh = odr.get_mesh(0.1);
 
-    std::vector<float> vertices;
-    vertices.reserve(road_network_mesh.lanes_mesh.vertices.size());
-    for (const auto& vert : road_network_mesh.lanes_mesh.vertices)
-    {
-        vertices.push_back(vert[0]);
-        vertices.push_back(vert[1]);
-        vertices.push_back(vert[2]);
-    }
-
     std::vector<unsigned int> indices;
     indices.reserve(road_network_mesh.lanes_mesh.indices.size());
     for (const auto& idx : road_network_mesh.lanes_mesh.indices)
@@ -196,14 +187,13 @@ int main(int argc, char* argv[])
     if (!program_ok(program))
         exit(EXIT_FAILURE);
 
-    // const float vertices[] = {2.0, 1.0, 0.0, -2.0, 1.0, 0.0, 0.0, 1.0, 3.0, 2.0, 5.0, 0.0, -2.0, 5.0, 0.0, 0.0, 5.0, 3.0};
-
-    // unsigned int indices[] = {0, 1, 2, 3, 5, 4};
-
     GLuint vertex_buffer;
     glGenBuffers(1, &vertex_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), &vertices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER,
+                 road_network_mesh.lanes_mesh.vertices.size() * 3 * sizeof(double),
+                 &road_network_mesh.lanes_mesh.vertices[0],
+                 GL_STATIC_DRAW);
 
     GLuint indices_buffer;
     glGenBuffers(1, &indices_buffer);
@@ -213,10 +203,7 @@ int main(int argc, char* argv[])
     GLuint vertex_array;
     glGenVertexArrays(1, &vertex_array);
     glBindVertexArray(vertex_array);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glBindVertexArray(0);
+    glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 0, (void*)0);
 
     OrbitControls orbit_controls(glm::vec3(2, -3, 1), glm::vec3(0, 0, 0), UP);
 
@@ -269,9 +256,8 @@ int main(int argc, char* argv[])
 
         glBindVertexArray(vertex_array);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_buffer);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
-        glDrawElements(GL_TRIANGLES, vertices.size(), GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, road_network_mesh.lanes_mesh.vertices.size() * 3, GL_UNSIGNED_INT, 0);
         glDisableVertexAttribArray(0);
 
         glfwSwapBuffers(window);
