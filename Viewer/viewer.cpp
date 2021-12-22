@@ -186,21 +186,32 @@ int main(int argc, char* argv[])
     if (!program_ok(program))
         exit(EXIT_FAILURE);
 
+    std::vector<float> vertex_data;
+    vertex_data.reserve(road_network_mesh.lanes_mesh.vertices.size() * 3);
+    for (const auto& vert : road_network_mesh.lanes_mesh.vertices)
+    {
+        vertex_data.push_back(vert[0]);
+        vertex_data.push_back(vert[1]);
+        vertex_data.push_back(vert[2]);
+    }
+
+    std::vector<float> st_data;
+    st_data.reserve(road_network_mesh.lanes_mesh.st_coordinates.size() * 2);
+    for (const auto& st : road_network_mesh.lanes_mesh.st_coordinates)
+    {
+        st_data.push_back(st[0]);
+        st_data.push_back(st[1]);
+    }
+
     GLuint vertex_buffer;
     glGenBuffers(1, &vertex_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-    glBufferData(GL_ARRAY_BUFFER,
-                 road_network_mesh.lanes_mesh.vertices.size() * 3 * sizeof(double),
-                 &road_network_mesh.lanes_mesh.vertices[0],
-                 GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertex_data.size() * sizeof(float), &vertex_data[0], GL_STATIC_DRAW);
 
     GLuint st_buffer;
     glGenBuffers(1, &st_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, st_buffer);
-    glBufferData(GL_ARRAY_BUFFER,
-                 road_network_mesh.lanes_mesh.st_coordinates.size() * 2 * sizeof(double),
-                 &road_network_mesh.lanes_mesh.st_coordinates[0],
-                 GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, st_data.size() * sizeof(float), &st_data[0], GL_STATIC_DRAW);
 
     GLuint indices_buffer;
     glGenBuffers(1, &indices_buffer);
@@ -216,11 +227,11 @@ int main(int argc, char* argv[])
 
     glEnableVertexAttribArray(0); // 1st attribute buffer: vertices
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
-    glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, 0, (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
     glEnableVertexAttribArray(1); // 2nd attribute buffer: st coords
     glBindBuffer(GL_ARRAY_BUFFER, st_buffer);
-    glVertexAttribPointer(1, 2, GL_DOUBLE, GL_FALSE, 0, (void*)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
     OrbitControls orbit_controls(glm::vec3(2, -3, 1), glm::vec3(0, 0, 0), UP);
 
@@ -273,7 +284,7 @@ int main(int argc, char* argv[])
         glBindVertexArray(vertex_array);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_buffer);
 
-        glDrawElements(GL_TRIANGLES, road_network_mesh.lanes_mesh.vertices.size() * 3, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, road_network_mesh.lanes_mesh.indices.size(), GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
