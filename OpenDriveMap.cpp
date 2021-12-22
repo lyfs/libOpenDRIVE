@@ -22,7 +22,7 @@ OpenDriveMap::OpenDriveMap(std::string xodr_file, bool with_lateralProfile, bool
     xodr_file(xodr_file)
 {
     pugi::xml_document     doc;
-    pugi::xml_parse_result result = doc.load_file(xodr_file.c_str());
+    pugi::xml_parse_result result = doc.load_string(xodr_file.c_str());
     if (!result)
         printf("%s\n", result.description());
 

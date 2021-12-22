@@ -11,6 +11,7 @@
 #include "OpenDriveMap.h"
 #include "OrbitControls.h"
 #include "RoadNetworkMesh.h"
+#include "test-xodr.h"
 #include "utils.hpp"
 
 #include <algorithm>
@@ -115,12 +116,7 @@ void                  main_loop() { loop(); }
 
 int main(int argc, char* argv[])
 {
-    if (argc < 2)
-    {
-        printf("ERROR: too few arguments\n");
-        return -1;
-    }
-    odr::OpenDriveMap    odr(argv[1]);
+    odr::OpenDriveMap    odr(test_xodr_str);
     odr::RoadNetworkMesh road_network_mesh = odr.get_mesh(0.1);
 
     if (!glfwInit())
