@@ -30,7 +30,7 @@ const char* vertex_shader_src = "#version 100\n"
                                 "}\0";
 
 const char* fragment_shader_src = "#version 100\n"
-                                  "precision mediump float;\n"
+                                  "precision highp float;\n"
                                   "varying vec2 v_st;\n"
                                   "void main(){\n"
                                   "    gl_FragColor = vec4(v_st.x, v_st.y, 0.0, 1.0);\n"
@@ -217,6 +217,21 @@ int main(int argc, char* argv[])
                  &road_network_mesh.lanes_mesh.indices[0],
                  GL_STATIC_DRAW);
 
+    GLuint st_framebuffer;
+    glGenFramebuffers(1, &st_framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, st_framebuffer);
+
+    GLuint st_texture;
+    glGenTextures(1, &st_texture);
+    glBindTexture(GL_TEXTURE_2D, st_texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, window_width, window_height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, st_texture, 0);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        printf("ERROR::FRAMEBUFFER:: Framebuffer is not complete!\n");
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     GLuint vertex_array;
     glGenVertexArrays(1, &vertex_array);
     glBindVertexArray(vertex_array);
@@ -228,6 +243,9 @@ int main(int argc, char* argv[])
     glEnableVertexAttribArray(1); // 2nd attribute buffer: st coords
     glBindBuffer(GL_ARRAY_BUFFER, st_buffer);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     OrbitControls orbit_controls(glm::vec3(2, -3, 1), glm::vec3(0, 0, 0), UP);
 
@@ -272,15 +290,27 @@ int main(int argc, char* argv[])
         view = glm::lookAt(orbit_controls.cam_position, orbit_controls.cam_target, UP);
         mvp = projection * view * model;
 
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
+        glBindTexture(GL_TEXTURE_2D, st_texture);
 
         glBindVertexArray(vertex_array);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_buffer);
 
         glDrawElements(GL_TRIANGLES, road_network_mesh.lanes_mesh.indices.size(), GL_UNSIGNED_INT, 0);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, st_framebuffer);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glDrawElements(GL_TRIANGLES, road_network_mesh.lanes_mesh.indices.size(), GL_UNSIGNED_INT, 0);
+
+        float px_vals[4];
+        glReadPixels(x_pos, window_height - y_pos, 1, 1, GL_RGBA, GL_FLOAT, &px_vals);
+        printf("%f %f %f %f\n", px_vals[0], px_vals[1], px_vals[2], px_vals[3]);
+
+        glBindVertexArray(0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
