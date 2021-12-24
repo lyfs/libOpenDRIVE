@@ -111,6 +111,24 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) { zoom_delta += yoffset; }
 
+// based on https://github.com/mrdoob/three.js/blob/e1ead8c5c2eb2395942f5e7d9af7240befc5d729/src/cameras/PerspectiveCamera.js#L177
+glm::mat4 get_view_offset_projection(int window_width, int window_height, double offset_x, double offset_y, double offset_width, double offset_height)
+{
+    const double aspect = (double)(window_width / window_height);
+
+    double top = NEAR_PLANE * std::tan(M_PI * 0.5 * FOV / 180.0);
+    double height = 2 * top;
+    double width = aspect * height;
+    double left = -0.5 * width;
+
+    left += offset_x * width / window_width;
+    top -= offset_y * height / window_height;
+    width *= offset_width / window_width;
+    height *= offset_height / window_height;
+
+    return glm::frustum(left, left + width, top - height, top, NEAR_PLANE, FAR_PLANE);
+}
+
 std::function<void()> loop;
 void                  main_loop() { loop(); }
 
@@ -224,7 +242,7 @@ int main(int argc, char* argv[])
     GLuint st_texture;
     glGenTextures(1, &st_texture);
     glBindTexture(GL_TEXTURE_2D, st_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, window_width, window_height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1, 1, 0, GL_RGBA, GL_FLOAT, NULL);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, st_texture, 0);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         printf("ERROR::FRAMEBUFFER:: Framebuffer is not complete!\n");
@@ -293,19 +311,23 @@ int main(int argc, char* argv[])
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
-        glBindTexture(GL_TEXTURE_2D, st_texture);
 
         glBindVertexArray(vertex_array);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_buffer);
 
         glDrawElements(GL_TRIANGLES, road_network_mesh.lanes_mesh.indices.size(), GL_UNSIGNED_INT, 0);
 
+        const glm::mat4 single_px_projection = get_view_offset_projection(window_width, window_height, x_pos, y_pos, 1.0, 1.0);
+        mvp = single_px_projection * view * model;
+        glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
+
+        glBindTexture(GL_TEXTURE_2D, st_texture);
         glBindFramebuffer(GL_FRAMEBUFFER, st_framebuffer);
         glClear(GL_COLOR_BUFFER_BIT);
         glDrawElements(GL_TRIANGLES, road_network_mesh.lanes_mesh.indices.size(), GL_UNSIGNED_INT, 0);
 
         float px_vals[4];
-        glReadPixels(x_pos, window_height - y_pos, 1, 1, GL_RGBA, GL_FLOAT, &px_vals);
+        glReadPixels(0, 0, 1, 1, GL_RGBA, GL_FLOAT, &px_vals);
         printf("%f %f %f %f\n", px_vals[0], px_vals[1], px_vals[2], px_vals[3]);
 
         glBindVertexArray(0);
