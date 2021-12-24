@@ -30,11 +30,17 @@ const char* vertex_shader_src = "#version 100\n"
                                 "}\0";
 
 const char* fragment_shader_src = "#version 100\n"
-                                  "precision highp float;\n"
-                                  "varying vec2 v_st;\n"
+                                  "precision mediump float;\n"
                                   "void main(){\n"
-                                  "    gl_FragColor = vec4(v_st.x, v_st.y, 0.0, 1.0);\n"
+                                  "    gl_FragColor = vec4(0.6, 0.6, 0.6, 1.0);\n"
                                   "}\n";
+
+const char* st_fragment_shader_src = "#version 100\n"
+                                     "precision highp float;\n"
+                                     "varying vec2 v_st;\n"
+                                     "void main(){\n"
+                                     "    gl_FragColor = vec4(v_st.x, v_st.y, 0.0, 1.0);\n"
+                                     "}\n";
 
 const double    FOV = 70;
 const double    NEAR_PLANE = 0.1;
@@ -154,7 +160,7 @@ int main(int argc, char* argv[])
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    GLFWwindow* window = glfwCreateWindow(window_width, window_height, "ObjViewer", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(window_width, window_height, "Xodr Viewer", NULL, NULL);
     if (!window)
     {
         printf("Failed to create GLFW window\n");
@@ -193,11 +199,24 @@ int main(int argc, char* argv[])
     if (!shader_ok(fragment_shader))
         exit(EXIT_FAILURE);
 
+    const GLuint st_fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(st_fragment_shader, 1, &st_fragment_shader_src, NULL);
+    glCompileShader(st_fragment_shader);
+    if (!shader_ok(st_fragment_shader))
+        exit(EXIT_FAILURE);
+
     const GLuint program = glCreateProgram();
     glAttachShader(program, vertex_shader);
     glAttachShader(program, fragment_shader);
     glLinkProgram(program);
     if (!program_ok(program))
+        exit(EXIT_FAILURE);
+
+    const GLuint st_program = glCreateProgram();
+    glAttachShader(st_program, vertex_shader);
+    glAttachShader(st_program, st_fragment_shader);
+    glLinkProgram(st_program);
+    if (!program_ok(st_program))
         exit(EXIT_FAILURE);
 
     std::vector<float> vertex_data;
@@ -242,7 +261,7 @@ int main(int argc, char* argv[])
     GLuint st_texture;
     glGenTextures(1, &st_texture);
     glBindTexture(GL_TEXTURE_2D, st_texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1, 1, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32F, 1, 1, 0, GL_RG, GL_FLOAT, NULL);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, st_texture, 0);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         printf("ERROR::FRAMEBUFFER:: Framebuffer is not complete!\n");
@@ -272,8 +291,6 @@ int main(int argc, char* argv[])
     glm::mat4 view = glm::lookAt(orbit_controls.cam_position, orbit_controls.cam_target, UP);
     glm::mat4 model = glm::mat4(1.0f);
     glm::mat4 mvp = projection * view * model;
-
-    glUseProgram(program);
 
     loop = [&]
     {
@@ -309,27 +326,29 @@ int main(int argc, char* argv[])
         mvp = projection * view * model;
 
         glClear(GL_COLOR_BUFFER_BIT);
-
-        glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
-
         glBindVertexArray(vertex_array);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_buffer);
 
+        glUseProgram(program);
+        glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
         glDrawElements(GL_TRIANGLES, road_network_mesh.lanes_mesh.indices.size(), GL_UNSIGNED_INT, 0);
 
         const glm::mat4 single_px_projection = get_view_offset_projection(window_width, window_height, x_pos, y_pos, 1.0, 1.0);
         mvp = single_px_projection * view * model;
-        glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
 
         glBindTexture(GL_TEXTURE_2D, st_texture);
         glBindFramebuffer(GL_FRAMEBUFFER, st_framebuffer);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        glUseProgram(st_program);
+        glUniformMatrix4fv(matrix_id, 1, GL_FALSE, &mvp[0][0]);
         glDrawElements(GL_TRIANGLES, road_network_mesh.lanes_mesh.indices.size(), GL_UNSIGNED_INT, 0);
 
         float px_vals[4];
         glReadPixels(0, 0, 1, 1, GL_RGBA, GL_FLOAT, &px_vals);
         printf("%f %f %f %f\n", px_vals[0], px_vals[1], px_vals[2], px_vals[3]);
 
+        // clear buffers
         glBindVertexArray(0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
